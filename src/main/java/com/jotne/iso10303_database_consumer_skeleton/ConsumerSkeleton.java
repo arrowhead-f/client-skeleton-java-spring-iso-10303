@@ -145,7 +145,7 @@ public class ConsumerSkeleton
     }
 
     /**
-    * The initialisation of the getData service
+    * The initialization of the getData service
     */
     public boolean initGetDataService()
     {
@@ -154,7 +154,7 @@ public class ConsumerSkeleton
     }
 
     /**
-    * The initialisation of the addData service
+    * The initialization of the addData service
     */
     public boolean initAddDataService()
     {
@@ -163,7 +163,7 @@ public class ConsumerSkeleton
     }
 
     /**
-    * The initialisation of the getSensors service
+    * The initialization of the getSensors service
     */
     public boolean initGetSensorsService()
     {
@@ -172,7 +172,7 @@ public class ConsumerSkeleton
     }
 
     /**
-    * The initialisation of the getSensorBySN service
+    * The initialization of the getSensorBySN service
     */
     public boolean initGetSensorBySNService()
     {
