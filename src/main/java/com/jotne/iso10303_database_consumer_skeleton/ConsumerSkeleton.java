@@ -1,7 +1,11 @@
 package com.jotne.iso10303_database_consumer_skeleton;
 
 import ai.aitia.arrowhead.application.library.ArrowheadService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jotne.iso10303_database_consumer_skeleton.dto.JotneSensorDataDTO;
+import com.jotne.iso10303_database_consumer_skeleton.dto.SensorDataDTO;
+import com.jotne.iso10303_database_consumer_skeleton.dto.SensorDescriptionDTO;
 import eu.arrowhead.common.SSLProperties;
 import eu.arrowhead.common.Utilities;
 import eu.arrowhead.common.dto.shared.OrchestrationFlags;
@@ -12,6 +16,7 @@ import eu.arrowhead.common.dto.shared.ServiceInterfaceResponseDTO;
 import eu.arrowhead.common.dto.shared.ServiceQueryFormDTO;
 import eu.arrowhead.common.exception.InvalidParameterException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,8 +39,11 @@ public class ConsumerSkeleton
 
     /**
     * The getSensors service provides info about sensors in the project
+     * @param projName - project name
+     * @return ArrayList of the SensorDescriptionDTO
+     * @throws java.lang.Exception
     */
-    public String getSensors( String projName ) throws Exception
+    public ArrayList<SensorDescriptionDTO> getSensors( String projName ) throws Exception
     {
         if( getSensorsSrv == null )
         {
@@ -47,18 +55,37 @@ public class ConsumerSkeleton
         String token = getSensorsSrv.getAuthorizationTokens() == null ? null
                 : getSensorsSrv.getAuthorizationTokens().get( getInterface() );
 
-        String result = arrowheadService.consumeServiceHTTP( String.class,
+        String sensorsInfo = arrowheadService.consumeServiceHTTP( String.class,
                 HttpMethod.valueOf( getSensorsSrv.getMetadata().get( Constants.HTTP_METHOD ) ),
                 getSensorsSrv.getProvider().getAddress(), getSensorsSrv.getProvider().getPort(),
                 getSensorsSrv.getServiceUri() + serviceURI, getInterface(), token, null );
+        
+        ArrayList<SensorDescriptionDTO> sensorList = null;
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode objRez = mapper.readTree( sensorsInfo );
+        if( objRez.isArray() )
+        {
+            sensorList = new ArrayList<>();
+            Iterator<JsonNode> itr = objRez.iterator();
+            while( itr.hasNext() )
+            {
+                JsonNode node = itr.next();
+                SensorDescriptionDTO sDescr = mapper.readValue( node.traverse(), SensorDescriptionDTO.class );
+                sensorList.add( sDescr );
+            }
+        }
 
-        return result;
+        return sensorList;
     }
 
     /**
     * The getSensorBySN service provides detailed info about the sensor with the specified serial number
+     * @param projName - project name
+     * @param sensorSN - sensor serial number
+     * @return SensorDescriptionDTO
+     * @throws java.lang.Exception 
     */
-    public String getSensorBySN( String projName, String sensorSN ) throws Exception
+    public SensorDescriptionDTO getSensorBySN( String projName, String sensorSN ) throws Exception
     {
         if( getSensorBySNSrv == null )
         {
@@ -70,19 +97,30 @@ public class ConsumerSkeleton
         String token = getSensorBySNSrv.getAuthorizationTokens() == null ? null
                 : getSensorBySNSrv.getAuthorizationTokens().get( getInterface() );
 
-        String result = arrowheadService.consumeServiceHTTP( String.class,
+        String sensorInfo = arrowheadService.consumeServiceHTTP( String.class,
                 HttpMethod.valueOf( getSensorBySNSrv.getMetadata().get( Constants.HTTP_METHOD ) ),
                 getSensorBySNSrv.getProvider().getAddress(), getSensorBySNSrv.getProvider().getPort(),
                 getSensorBySNSrv.getServiceUri() + serviceURI, getInterface(), token, null );
 
-        return result;
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode node = mapper.readTree( sensorInfo );
+        SensorDescriptionDTO sDescr = mapper.readValue( node.traverse(), SensorDescriptionDTO.class );
+        
+        return sDescr;
     }
 
     /**
     * The getSensorData service provides sensor's data for the sensor with the specified serial number 
     * with the filtering by the key field
+     * @param projName - project name
+     * @param sensorSN - sensor serial number
+     * @param propURN - property URN
+     * @param fromKey - start value of the key field for the filtering 
+     * @param toKey - last value of the key field for the filtering 
+     * @return SensorDataDTO
+     * @throws java.lang.Exception
     */
-    public String getSensorData( String projName, String sensorSN, String propURN, String fromKey, String toKey ) throws Exception
+    public JotneSensorDataDTO getSensorData( String projName, String sensorSN, String propURN, String fromKey, String toKey ) throws Exception
     {
         if( getDataSrv == null )
         {
@@ -112,17 +150,27 @@ public class ConsumerSkeleton
             prms = prmLst.toArray( new String[ prmLst.size() ] );
         }
 
-        String result = arrowheadService.consumeServiceHTTP( String.class,
+        String sensorData = arrowheadService.consumeServiceHTTP( String.class,
                 HttpMethod.valueOf( getDataSrv.getMetadata().get( Constants.HTTP_METHOD ) ),
                 getDataSrv.getProvider().getAddress(), getDataSrv.getProvider().getPort(),
                 getDataSrv.getServiceUri() + serviceURI, getInterface(), token, null, prms );
-
-        return result;
+        
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode node = mapper.readTree( sensorData );
+        JotneSensorDataDTO sData = mapper.readValue( node.traverse(), JotneSensorDataDTO.class );
+        
+        return sData;
     }
 
     /**
     * The addSensorData service provides the possibility to add sensor's data for 
     * the sensor with the specified serial number 
+     * @param projName - project name
+     * @param sensorSN - sensor serial number
+     * @param propURN - property URN
+     * @param data - sensor data
+     * @return OK or not
+     * @throws java.lang.Exception
     */
     public String addSensorData( String projName, String sensorSN, String propURN, JotneSensorDataDTO data ) throws Exception
     {
@@ -146,6 +194,7 @@ public class ConsumerSkeleton
 
     /**
     * The initialization of the getData service
+     * @return true in case of successful initialization
     */
     public boolean initGetDataService()
     {
@@ -155,6 +204,7 @@ public class ConsumerSkeleton
 
     /**
     * The initialization of the addData service
+     * @return true in case of successful initialization
     */
     public boolean initAddDataService()
     {
@@ -164,6 +214,7 @@ public class ConsumerSkeleton
 
     /**
     * The initialization of the getSensors service
+     * @return true in case of successful initialization
     */
     public boolean initGetSensorsService()
     {
@@ -173,6 +224,7 @@ public class ConsumerSkeleton
 
     /**
     * The initialization of the getSensorBySN service
+     * @return true in case of successful initialization
     */
     public boolean initGetSensorBySNService()
     {
