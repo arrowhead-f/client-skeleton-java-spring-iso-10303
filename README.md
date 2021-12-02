@@ -16,7 +16,7 @@ Each service has to be initialized before usage.
     try
     {
         if( consumerBase.initGetSensorsService() )
-            String sensorsInfo = consumerBase.getSensors( "Project" );
+            ArrayList<SensorDescriptionDTO> sensorsInfo = consumerBase.getSensors( "Project" );
     }
     catch( Exception ex )
     {
